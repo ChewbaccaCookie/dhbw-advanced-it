@@ -1,12 +1,12 @@
-package Aufgabe17;
+package Aufgabe18;
 
 import java.net.SocketException;
 
-public class Aufgabe17 {
+public class Aufgabe18 {
     public static void main(String[] args) {
         try {
-            Client17 client = new Client17("255.255.255.255", 4998);
-            Server17 server = new Server17(4998);
+            Client18 client = new Client18("localhost", 7777);
+            Server18 server = new Server18(7777);
             server.start();
             client.start();
         } catch (SocketException e) {
