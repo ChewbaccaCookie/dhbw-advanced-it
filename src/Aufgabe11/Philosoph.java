@@ -58,11 +58,9 @@ public class Philosoph extends Thread {
     }
 
     private synchronized void isEating(boolean isEating) {
-
         this.isEating = isEating;
-
     }
-    public boolean getIsEating() {
+    public synchronized boolean getIsEating() {
         return isEating;
     }
 }
