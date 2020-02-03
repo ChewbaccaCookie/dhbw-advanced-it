@@ -2,7 +2,6 @@ package Aufgabe19;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Semaphore;
@@ -34,47 +33,33 @@ enum Responses {
 
 
 public class Server19 extends Thread{
-    private DatagramPacket dataPackage;
     private DatagramSocket server;
     private final String EXTENSION = ".txt";
-    private boolean isRunning = false;
-    private Semaphore process = new Semaphore(0);
     private static HashMap<String, Semaphore> writer = new HashMap<>();
 
-    public int getIdentifier() {
-        return id;
-    }
-
     private final int id;
-    public Server19(int id) {
+    public Server19(int id,DatagramSocket socket) {
         this.id = id + 1;
+        this.server = socket;
     }
 
-    public void setData(DatagramPacket dataPackage,DatagramSocket socket) {
-        isRunning = true;
-        this.server = socket;
-        this.dataPackage = dataPackage;
-        process.release();
-    }
     public void run() {
         try {
             while(true) {
-                process.acquire();
-                String data = new String(this.dataPackage.getData(), 0, this.dataPackage.getLength());
+                DatagramPacket dataPackage = Aufgabe19.monitor.getJob(id);
+                String data = new String(dataPackage.getData(), 0, dataPackage.getLength());
+                System.out.println(String.format("Request '%s' will be handled by thread %s", data, id));
                 String[] messageProps = data.split("\\s|,");
                 for (int i = 4; i < messageProps.length; i++) {
                     messageProps[3] += " " + messageProps[i];
                 }
+
                 String response = this.handleCommand(messageProps).toString();
-                DatagramPacket responsePackage = new DatagramPacket(response.getBytes(), response.getBytes().length, this.dataPackage.getAddress(), this.dataPackage.getPort());
+                Thread.sleep(100);
+                DatagramPacket responsePackage = new DatagramPacket(response.getBytes(), response.getBytes().length, dataPackage.getAddress(), dataPackage.getPort());
                 server.send(responsePackage);
-                isRunning = false;
             }
         } catch (Exception ex) {}
-    }
-
-    public boolean isRunning() {
-        return isRunning;
     }
 
     private String handleCommand(String[] mP) {
@@ -103,7 +88,7 @@ public class Server19 extends Thread{
         return Responses.FAILED.toString();
     }
 
-    private void aquireFile(String filename) throws InterruptedException {
+    private void acquireFile(String filename) throws InterruptedException {
         Semaphore waiter = writer.get(filename);
         if (waiter == null) {
             writer.put(filename, new Semaphore(0));
@@ -117,7 +102,7 @@ public class Server19 extends Thread{
     }
 
     private String saveFile(String fileName, int line, String data) throws IOException, InterruptedException {
-        this.aquireFile(fileName);
+        this.acquireFile(fileName);
         String path = "files/" + fileName + EXTENSION;
         File file = new File(path);
         if (!file.exists()) {
